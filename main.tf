@@ -24,10 +24,5 @@ provider "aws" {
 # ローカル変数
 locals {
   app_name = "${var.project_name}-${var.environment}"
-  azs      = data.aws_availability_zones.available.names
-}
-
-# 利用可能な AZ を取得
-data "aws_availability_zones" "available" {
-  state = "available"
+  azs      = ["ap-northeast-1a", "ap-northeast-1c"]
 }

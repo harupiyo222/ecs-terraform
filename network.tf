@@ -40,7 +40,7 @@ resource "aws_eip" "nat" {
 # ==================================================
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.alb[0].id  # パブリックサブネット
+  subnet_id     = aws_subnet.alb[0].id
 
   tags = {
     Name = "${local.app_name}-nat-gw"
@@ -60,7 +60,7 @@ resource "aws_subnet" "alb" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${local.app_name}-alb-subnet-${count.index + 1}"
+    Name = "${local.app_name}-public-subnet-${substr(local.azs[count.index % length(local.azs)], -2, -1)}"
     Type = "Public"
   }
 }
@@ -75,20 +75,20 @@ resource "aws_subnet" "api" {
   availability_zone = local.azs[count.index % length(local.azs)]
 
   tags = {
-    Name = "${local.app_name}-api-subnet-${count.index + 1}"
+    Name = "${local.app_name}-private-subnet-${substr(local.azs[count.index % length(local.azs)], -2, -1)}"
     Type = "Private"
   }
 }
 
 # ==================================================
-# ルートテーブル（パブリック）
+# ルートテーブル（パブリック）・アソシエーション
 # ==================================================
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block      = "0.0.0.0/0"
-    gateway_id      = aws_internet_gateway.main.id
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
   }
 
   tags = {
@@ -103,7 +103,7 @@ resource "aws_route_table_association" "public" {
 }
 
 # ==================================================
-# ルートテーブル（プライベート）
+# ルートテーブル（プライベート）・アソシエーション
 # ==================================================
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id

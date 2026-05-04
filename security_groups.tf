@@ -6,7 +6,6 @@ resource "aws_security_group" "alb" {
   description = "Security group for ALB"
   vpc_id      = aws_vpc.main.id
 
-  # インバウンド：HTTP
   ingress {
     from_port   = 80
     to_port     = 80
@@ -14,7 +13,6 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # インバウンド：HTTPS（必要な場合）
   ingress {
     from_port   = 443
     to_port     = 443

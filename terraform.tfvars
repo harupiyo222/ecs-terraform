@@ -1,6 +1,6 @@
 # 環境設定
-project_name = "myapp"
-environment  = "production"
+project_name = "aws"
+environment  = "prod"
 aws_region   = "ap-northeast-1"
 
 # ネットワーク設定
@@ -19,9 +19,9 @@ container_memory   = 512  # MB
 container_cpu      = 256  # CPU Units
 
 # Auto Scaling 設定
-asg_desired_count = 2  # 常に実行するタスク数
-asg_min_count     = 2  # 最小タスク数
-asg_max_count     = 4  # 最大タスク数
+asg_desired_count = 1  # 常に実行するタスク数
+asg_min_count     = 1  # 最小タスク数
+asg_max_count     = 2  # 最大タスク数
 
 # ヘルスチェック設定
 health_check_path = "/"  # ヘルスチェックパス（アプリで対応しているパスを指定）

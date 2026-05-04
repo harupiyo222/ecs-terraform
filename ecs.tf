@@ -32,9 +32,9 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   capacity_providers = ["FARGATE", "FARGATE_SPOT"]
 
   default_capacity_provider_strategy {
-    base              = 1
+    base              = 0
     weight            = 100
-    capacity_provider = "FARGATE"
+    capacity_provider = "FARGATE_SPOT"
   }
 }
 
@@ -73,15 +73,6 @@ resource "aws_ecs_task_definition" "api" {
           "awslogs-stream-prefix" = "ecs"
         }
       }
-
-      # ヘルスチェック（オプション）
-      healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:${var.container_port}${var.health_check_path} || exit 1"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 60
-      }
     }
   ])
 
@@ -97,8 +88,13 @@ resource "aws_ecs_service" "api" {
   name            = "${local.app_name}-service"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.api.arn
-  desired_count   = var.asg_desired_count
-  launch_type     = "FARGATE"
+  desired_count = var.asg_desired_count
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 100
+    base              = 0
+  }
 
   network_configuration {
     subnets          = aws_subnet.api[*].id
@@ -113,15 +109,8 @@ resource "aws_ecs_service" "api" {
   }
 
   # サービスの更新時の設定
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 100
-  }
-
-  # サービスディスカバリーの有効化（オプション）
-  # service_registries {
-  #   registry_arn = aws_service_discovery_service.api.arn
-  # }
+  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 100
 
   depends_on = [
     aws_lb_listener.http,
