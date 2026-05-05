@@ -51,7 +51,7 @@ resource "aws_db_subnet_group" "main" {
 resource "aws_db_parameter_group" "main" {
   name        = "${local.app_name}-rds-pg"
   description = "${local.app_name}-rds-pg"
-  family      = "postgres16"
+  family      = "mysql8.0"
 
   tags = {
     Name = "${local.app_name}-rds-pg"
@@ -63,8 +63,8 @@ resource "aws_db_parameter_group" "main" {
 # ==================================================
 resource "aws_db_instance" "main" {
   identifier        = "${local.app_name}-rds"
-  engine            = "postgres"
-  engine_version    = "16"
+  engine            = "mysql"
+  engine_version    = "8.0"
   instance_class    = var.db_instance_class
   allocated_storage = 20
 
