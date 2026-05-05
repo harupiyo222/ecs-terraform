@@ -28,48 +28,6 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# ECR アクセス権限の追加
-resource "aws_iam_role_policy" "ecs_ecr_access" {
-  name = "${local.app_name}-ecs-ecr-access"
-  role = aws_iam_role.ecs_task_execution_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:BatchCheckLayerAvailability"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-# CloudWatch Logs アクセス権限の追加
-resource "aws_iam_role_policy" "ecs_logs_policy" {
-  name = "${local.app_name}-ecs-logs-policy"
-  role = aws_iam_role.ecs_task_execution_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = "arn:aws:logs:${var.aws_region}:*:log-group:/ecs/*"
-      }
-    ]
-  })
-}
 
 # ==================================================
 # ECS タスクロール（アプリケーション用）
@@ -95,7 +53,7 @@ resource "aws_iam_role" "ecs_task_role" {
   }
 }
 
-# アプリケーション用の権限を追加（必要に応じてカスタマイズ）
+# ECS Exec（SSM）権限
 resource "aws_iam_role_policy" "ecs_task_policy" {
   name = "${local.app_name}-ecs-task-policy"
   role = aws_iam_role.ecs_task_role.id
@@ -106,8 +64,10 @@ resource "aws_iam_role_policy" "ecs_task_policy" {
       {
         Effect = "Allow"
         Action = [
-          "s3:GetObject",
-          "s3:ListBucket"
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel"
         ]
         Resource = "*"
       }

@@ -12,7 +12,7 @@ resource "aws_vpc" "main" {
 }
 
 # ==================================================
-# インターネットゲートウェイ
+# Internet Gateway
 # ==================================================
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
@@ -23,7 +23,7 @@ resource "aws_internet_gateway" "main" {
 }
 
 # ==================================================
-# Elastic IP（NAT Gateway用）
+# Elastic IP (for NAT Gateway)
 # ==================================================
 resource "aws_eip" "nat" {
   domain = "vpc"
@@ -36,7 +36,7 @@ resource "aws_eip" "nat" {
 }
 
 # ==================================================
-# NAT Gateway（プライベートサブネット用）
+# NAT Gateway (for Protected Subnet)
 # ==================================================
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
@@ -50,7 +50,7 @@ resource "aws_nat_gateway" "main" {
 }
 
 # ==================================================
-# パブリックサブネット（ALB用）
+# Public Subnet (for ALB)
 # ==================================================
 resource "aws_subnet" "alb" {
   count                   = length(var.alb_subnet_cidrs)
@@ -66,12 +66,27 @@ resource "aws_subnet" "alb" {
 }
 
 # ==================================================
-# プライベートサブネット（ECS用）
+# Protected Subnet (for ECS)
 # ==================================================
-resource "aws_subnet" "api" {
-  count             = length(var.api_subnet_cidrs)
+resource "aws_subnet" "protected" {
+  count             = length(var.protected_subnet_cidrs)
   vpc_id            = aws_vpc.main.id
-  cidr_block        = var.api_subnet_cidrs[count.index]
+  cidr_block        = var.protected_subnet_cidrs[count.index]
+  availability_zone = local.azs[count.index % length(local.azs)]
+
+  tags = {
+    Name = "${local.app_name}-protected-subnet-${substr(local.azs[count.index % length(local.azs)], -2, -1)}"
+    Type = "Protected"
+  }
+}
+
+# ==================================================
+# Private Subnet (for RDS)
+# ==================================================
+resource "aws_subnet" "private" {
+  count             = length(var.private_subnet_cidrs)
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidrs[count.index]
   availability_zone = local.azs[count.index % length(local.azs)]
 
   tags = {
@@ -81,7 +96,7 @@ resource "aws_subnet" "api" {
 }
 
 # ==================================================
-# ルートテーブル（パブリック）・アソシエーション
+# Route Table (Public) & Association
 # ==================================================
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
@@ -103,9 +118,9 @@ resource "aws_route_table_association" "public" {
 }
 
 # ==================================================
-# ルートテーブル（プライベート）・アソシエーション
+# Route Table (Protected) & Association
 # ==================================================
-resource "aws_route_table" "private" {
+resource "aws_route_table" "protected" {
   vpc_id = aws_vpc.main.id
 
   route {
@@ -114,12 +129,29 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
+    Name = "${local.app_name}-protected-rt"
+  }
+}
+
+resource "aws_route_table_association" "protected" {
+  count          = length(aws_subnet.protected)
+  subnet_id      = aws_subnet.protected[count.index].id
+  route_table_id = aws_route_table.protected.id
+}
+
+# ==================================================
+# Route Table (Private) & Association
+# ==================================================
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
     Name = "${local.app_name}-private-rt"
   }
 }
 
 resource "aws_route_table_association" "private" {
-  count          = length(aws_subnet.api)
-  subnet_id      = aws_subnet.api[count.index].id
+  count          = length(aws_subnet.private)
+  subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private.id
 }

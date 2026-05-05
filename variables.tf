@@ -25,28 +25,34 @@ variable "vpc_cidr" {
 }
 
 variable "alb_subnet_cidrs" {
-  description = "ALB サブネット CIDR（複数AZ）"
+  description = "ALB subnet CIDRs (multi-AZ)"
   type        = list(string)
-  default     = ["10.0.2.0/24", "10.0.3.0/24"]
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
-variable "api_subnet_cidrs" {
-  description = "API サブネット CIDR（複数AZ）"
+variable "protected_subnet_cidrs" {
+  description = "Protected subnet CIDRs for ECS (multi-AZ)"
   type        = list(string)
-  default     = ["10.0.0.0/24", "10.0.1.0/24"]
+  default     = ["10.0.3.0/24", "10.0.4.0/24"]
+}
+
+variable "private_subnet_cidrs" {
+  description = "Private subnet CIDRs for RDS (multi-AZ)"
+  type        = list(string)
+  default     = ["10.0.5.0/24", "10.0.6.0/24"]
 }
 
 # ECS 設定
 variable "ecs_cluster_name" {
   description = "ECS クラスタ名"
   type        = string
-  default     = "api-cluster"
+  default     = "app-cluster"
 }
 
 variable "ecs_task_family" {
   description = "ECS タスク定義ファミリー名"
   type        = string
-  default     = "api-server"
+  default     = "app-server"
 }
 
 variable "container_image" {
@@ -90,6 +96,31 @@ variable "asg_max_count" {
   description = "最大タスク数"
   type        = number
   default     = 4
+}
+
+# RDS 設定
+variable "db_name" {
+  description = "データベース名"
+  type        = string
+  default     = "appdb"
+}
+
+variable "db_username" {
+  description = "DBユーザー名"
+  type        = string
+  default     = "dbadmin"
+}
+
+variable "db_instance_class" {
+  description = "DBインスタンスクラス"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+# ドメイン設定
+variable "domain_name" {
+  description = "Domain name"
+  type        = string
 }
 
 # ヘルスチェック

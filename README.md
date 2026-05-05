@@ -7,51 +7,58 @@ AWS 上で ECSを冗長化する構成を Terraform でコード化したもの�
 ## アーキテクチャ概要
 
 ```
-インターネット
+Internet
     ↓
-ALB（Application Load Balancer）
-    ├─ api-subnet-01（AZ1）
-    │   └─ ECS Task: api-server-01
-    └─ api-subnet-02（AZ2）
-        └─ ECS Task: api-server-02
-            ↓
-        ECR（コンテナレジストリ）
+Route53 (haru-aws.link)
+    ↓
+CloudFront (HTTPS / CDN)
+    ├── /static/* ───────────────────────────────── S3 (Static Assets)
+    └── /* ──→ ALB
+                │
+                │  VPC (10.0.0.0/21)
+                ├─────────────────────────────────────────────┐
+                │  Public Subnet (10.0.1.0/24 / 10.0.2.0/24) │
+                │  ALB・NAT Gateway                           │
+                ├─────────────────────────────────────────────┤
+                │  Protected Subnet (10.0.3.0/24 / 10.0.4.0) │
+                │  ECS Task 1a  │  ECS Task 1c  (Fargate Spot)│
+                ├─────────────────────────────────────────────┤
+                │  Private Subnet (10.0.5.0/24 / 10.0.6.0)   │
+                │  RDS PostgreSQL (db.t3.micro)               │
+                └─────────────────────────────────────────────┘
+
+GitHub Actions → ECR → ECS Deploy
+Secrets Manager → RDS Credentials
 ```
 
 ## ファイル構成
 
 ```
 ecs-terraform/
-├── main.tf                 # Terraform プロバイダ設定
-├── variables.tf            # 変数定義
-├── terraform.tfvars        # 変数値（環境別設定）
-├── outputs.tf              # 出力値
-├── vpc.tf                  # VPC・ネットワーク構成
-├── security_groups.tf      # セキュリティグループ
-├── alb.tf                  # Application Load Balancer
-├── iam.tf                  # IAM ロール・ポリシー
-├── ecs.tf                  # ECS クラスタ・サービス・タスク定義
-├── auto_scaling.tf         # Auto Scaling ポリシー
-└── README.md               # このファイル
+├── main.tf             # Terraform provider・locals
+├── variables.tf        # 変数定義
+├── terraform.tfvars    # 変数値
+├── outputs.tf          # 出力値
+├── network.tf          # VPC・Subnet・Route Table
+├── security_groups.tf  # Security Group (ALB / ECS / RDS)
+├── alb.tf              # Application Load Balancer
+├── ecs.tf              # ECS Cluster・Service・Task Definition
+├── iam.tf              # IAM Role・Policy
+├── auto_scaling.tf     # Auto Scaling
+├── rds.tf              # RDS・DB Subnet Group・Secrets Manager
+├── acm.tf              # ACM Certificate (us-east-1)
+├── route53.tf          # Route53 DNS Records
+├── cloudfront.tf       # CloudFront Distribution
+├── s3.tf               # S3 Bucket (Static Assets)
+└── README.md
 ```
 
-**特徴：**
+## 特徴
 
-- マルチ AZ 冗長構成（2つ以上のAZに分散）
-- ALB でトラフィック分散
-- Auto Scaling で自動スケーリング対応
-- Fargate で インフラ管理不要
-- コスト削減のためにfargate spotで作成
-
-**追加したい要件：**
-
-- CloudWatch監視・アラート
-- Secrets Managerでの秘密情報管理
-  （RDS接続文字列・Cognito設定等）
-- WAF CloudFront
-- cognitoでの認証
-- Next.js → Prisma → RDS（PostgreSQL）
-- ECRへの通信用のVPCエンドポイント
-- ヘルスチェック設定
-- RDS自動バックアップ
-- ECRライフサイクルポリシー
+- マルチAZ冗長構成（ap-northeast-1a / 1c）
+- ALBでトラフィック分散
+- Fargate Spotでコスト削減
+- Auto Scaling（CPU使用率70%でスケールアウト）
+- CloudFront + ACMでHTTPS対応
+- RDSパスワードをSecrets Managerで自動管理
+- サブネットを3層（Public / Protected / Private）に分離

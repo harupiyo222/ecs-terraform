@@ -41,7 +41,7 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
 # ==================================================
 # ECS タスク定義
 # ==================================================
-resource "aws_ecs_task_definition" "api" {
+resource "aws_ecs_task_definition" "app" {
   family                   = var.ecs_task_family
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
@@ -84,10 +84,10 @@ resource "aws_ecs_task_definition" "api" {
 # ==================================================
 # ECS サービス
 # ==================================================
-resource "aws_ecs_service" "api" {
+resource "aws_ecs_service" "app" {
   name            = "${local.app_name}-service"
   cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.api.arn
+  task_definition = aws_ecs_task_definition.app.arn
   desired_count = var.asg_desired_count
 
   capacity_provider_strategy {
@@ -97,24 +97,24 @@ resource "aws_ecs_service" "api" {
   }
 
   network_configuration {
-    subnets          = aws_subnet.api[*].id
+    subnets          = aws_subnet.protected[*].id
     security_groups  = [aws_security_group.ecs.id]
     assign_public_ip = false
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.api.arn
+    target_group_arn = aws_lb_target_group.app.arn
     container_name   = var.ecs_task_family
     container_port   = var.container_port
   }
 
-  # サービスの更新時の設定
+  enable_execute_command = true
+
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
 
   depends_on = [
-    aws_lb_listener.http,
-    aws_iam_role_policy.ecs_ecr_access
+    aws_lb_listener.http
   ]
 
   tags = {

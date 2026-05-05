@@ -18,7 +18,7 @@ resource "aws_lb" "main" {
 # ==================================================
 # ALBターゲットグループ
 # ==================================================
-resource "aws_lb_target_group" "api" {
+resource "aws_lb_target_group" "app" {
   name        = "${local.app_name}-tg"
   port        = var.container_port
   protocol    = "HTTP"
@@ -49,20 +49,7 @@ resource "aws_lb_listener" "http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api.arn
+    target_group_arn = aws_lb_target_group.app.arn
   }
 }
 
-# HTTPS リスナー（オプション：証明書が必要）
-# resource "aws_lb_listener" "https" {
-#   load_balancer_arn = aws_lb.main.arn
-#   port              = "443"
-#   protocol          = "HTTPS"
-#   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-#   certificate_arn   = "arn:aws:acm:ap-northeast-1:ACCOUNT_ID:certificate/CERTIFICATE_ID"
-#
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.api.arn
-#   }
-# }

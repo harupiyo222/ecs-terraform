@@ -1,5 +1,5 @@
 # ==================================================
-# ALB用セキュリティグループ
+# Security Group for ALB
 # ==================================================
 resource "aws_security_group" "alb" {
   name        = "${local.app_name}-alb-sg"
@@ -20,7 +20,6 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # アウトバウンド：すべて許可
   egress {
     from_port   = 0
     to_port     = 0
@@ -34,14 +33,13 @@ resource "aws_security_group" "alb" {
 }
 
 # ==================================================
-# ECS用セキュリティグループ
+# Security Group for ECS
 # ==================================================
 resource "aws_security_group" "ecs" {
   name        = "${local.app_name}-ecs-sg"
   description = "Security group for ECS tasks"
   vpc_id      = aws_vpc.main.id
 
-  # インバウンド：ALBからのトラフィック
   ingress {
     from_port       = var.container_port
     to_port         = var.container_port
@@ -49,7 +47,6 @@ resource "aws_security_group" "ecs" {
     security_groups = [aws_security_group.alb.id]
   }
 
-  # アウトバウンド：すべて許可
   egress {
     from_port   = 0
     to_port     = 0
@@ -59,5 +56,25 @@ resource "aws_security_group" "ecs" {
 
   tags = {
     Name = "${local.app_name}-ecs-sg"
+  }
+}
+
+# ==================================================
+# Security Group for RDS
+# ==================================================
+resource "aws_security_group" "rds" {
+  name        = "${local.app_name}-rds-sg"
+  description = "Security group for RDS"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs.id]
+  }
+
+  tags = {
+    Name = "${local.app_name}-rds-sg"
   }
 }
