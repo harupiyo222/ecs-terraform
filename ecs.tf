@@ -54,7 +54,7 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name      = var.ecs_task_family
-      image     = var.container_image != "" ? var.container_image : "nginx:latest"
+      image     = var.container_image
       essential = true
 
       portMappings = [
@@ -62,6 +62,20 @@ resource "aws_ecs_task_definition" "app" {
           containerPort = var.container_port
           hostPort      = var.container_port
           protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        {
+          name  = "MYSQL_DATABASE"
+          value = var.db_name
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "DB_SECRET_ARN"
+          valueFrom = aws_db_instance.main.master_user_secret[0].secret_arn
         }
       ]
 

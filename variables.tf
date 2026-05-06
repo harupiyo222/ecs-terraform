@@ -56,9 +56,8 @@ variable "ecs_task_family" {
 }
 
 variable "container_image" {
-  description = "コンテナイメージ URI"
+  description = "コンテナイメージ URI (ECR)"
   type        = string
-  default     = ""
 }
 
 variable "container_port" {

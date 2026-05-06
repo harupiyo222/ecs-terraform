@@ -18,8 +18,8 @@ private_subnet_cidrs   = ["10.0.5.0/24", "10.0.6.0/24"]
 # ==================================================
 ecs_cluster_name = "app-cluster"
 ecs_task_family  = "app-server"
-container_image  = ""
-container_port   = 3000
+container_image = "904469541992.dkr.ecr.ap-northeast-1.amazonaws.com/todo-app:latest"
+container_port      = 3000
 container_memory = 512
 container_cpu    = 256
 
