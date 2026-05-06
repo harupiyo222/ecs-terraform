@@ -1,6 +1,6 @@
 # ECS - Terraform
 
-AWS 上で ECSを冗長化する構成を Terraform でコード化したものです。
+AWS上でのコンテナアプリケーション構成をTerraform でコード化したものです。
 
 実際の現場ではmodule化して環境ごとに使い分けているようですが、個人開発レベルなので単一のディレクトリにしています。
 
@@ -13,7 +13,7 @@ AWS 上で ECSを冗長化する構成を Terraform でコード化したもの�
 ```
 Internet
     ↓
-Route53 (haru-aws.link)
+Route53 (ドメイン)
     ↓
 CloudFront (HTTPS / CDN)
     ├── /static/* ───────────────────────────────── S3 (Static Assets)
@@ -25,13 +25,12 @@ CloudFront (HTTPS / CDN)
                 │  ALB・NAT Gateway                           │
                 ├─────────────────────────────────────────────┤
                 │  Protected Subnet (10.0.3.0/24 / 10.0.4.0) │
-                │  ECS Task 1a  │  ECS Task 1c  (Fargate Spot)│
+                │  ECS Task 1a (Fargate Spot)  │  ECS Task 1c │
                 ├─────────────────────────────────────────────┤
                 │  Private Subnet (10.0.5.0/24 / 10.0.6.0)   │
                 │  RDS Mysql (db.t3.micro)               │
                 └─────────────────────────────────────────────┘
 
-GitHub Actions → ECR → ECS Deploy
 Secrets Manager → RDS Credentials
 ```
 
@@ -63,9 +62,9 @@ ecs-terraform/
 ## コスト計算
 
 - Route 53:0.50ドル
-- ALB: 28.30ドル ※PublicIPx1無料
+- ALB: 28.30ドル
 - Fargate:11.09ドル ※Spotで7割引可
-- NAT: 48.24ドル ※右側の構成のみ
+- NAT: 48.24ドル
 - RDS: 18.72ドル
 - Secrets Manager ~0.40ドル 1シークレット/月
 
