@@ -1,8 +1,10 @@
-# ECS 冗長化構成 - Terraform
+# ECS - Terraform
 
 AWS 上で ECSを冗長化する構成を Terraform でコード化したものです。
 
 実際の現場ではmodule化して環境ごとに使い分けているようですが、個人開発レベルなので単一のディレクトリにしています。
+
+# 構成図
 
 ![システム構成図](./構成図.png)
 
@@ -26,7 +28,7 @@ CloudFront (HTTPS / CDN)
                 │  ECS Task 1a  │  ECS Task 1c  (Fargate Spot)│
                 ├─────────────────────────────────────────────┤
                 │  Private Subnet (10.0.5.0/24 / 10.0.6.0)   │
-                │  RDS PostgreSQL (db.t3.micro)               │
+                │  RDS Mysql (db.t3.micro)               │
                 └─────────────────────────────────────────────┘
 
 GitHub Actions → ECR → ECS Deploy
@@ -52,19 +54,29 @@ ecs-terraform/
 ├── route53.tf          # Route53 DNS Records
 ├── cloudfront.tf       # CloudFront Distribution
 ├── s3.tf               # S3 Bucket (Static Assets)
+├── ecr.tf              # ECR リポジトリ・ライフサイクルポリシー
+├── backend.tf          # Terraform リモートステート (S3)
+└── vpc_endpoints.tf    # VPC エンドポイント (ECR / S3 / CloudWatch Logs)
 └── README.md
 ```
 
 ## コスト計算
 
--
+- Route 53:0.50ドル
+- ALB: 28.30ドル ※PublicIPx1無料
+- Fargate:11.09ドル ※Spotで7割引可
+- NAT: 48.24ドル ※右側の構成のみ
+- RDS: 18.72ドル
+- Secrets Manager ~0.40ドル 1シークレット/月
 
 ## 特徴
 
 - マルチAZ冗長構成（ap-northeast-1a / 1c）
+- サブネットを3層（Public / Protected / Private）に分離
 - ALBでトラフィック分散
 - Fargate Spotでコスト削減
 - Auto Scaling（CPU使用率70%でスケールアウト）
-- CloudFront + ACMでHTTPS対応
+- CloudFront + S3でパスごとにALBとS3に振り分ける
 - RDSパスワードをSecrets Managerで自動管理
-- サブネットを3層（Public / Protected / Private）に分離
+- VPCエンドポイント — ECSからECR・S3・CloudWatch LogsへNAT非経由でアクセス（コスト削減・セキュリティ向上）
+- Terraformリモートステート — S3バックエンドでtfstateを管理（チーム開発・CI/CD対応）

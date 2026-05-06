@@ -81,18 +81,3 @@ resource "aws_vpc_endpoint" "logs" {
   }
 }
 
-# ==================================================
-# Interface Endpoint: SSM Messages (ECS Exec)
-# ==================================================
-resource "aws_vpc_endpoint" "ssmmessages" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ssmmessages"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.protected[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
-
-  tags = {
-    Name = "${local.app_name}-vpce-ssmmessages"
-  }
-}
