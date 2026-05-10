@@ -28,9 +28,9 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# ECS タスク実行ロール - Secrets Manager 読み取り権限
-resource "aws_iam_role_policy" "ecs_secrets_policy" {
-  name = "${local.app_name}-ecs-secrets-policy"
+# ECS タスク実行ロール - SSM Parameter Store 読み取り権限
+resource "aws_iam_role_policy" "ecs_ssm_policy" {
+  name = "${local.app_name}-ecs-ssm-policy"
   role = aws_iam_role.ecs_task_execution_role.id
 
   policy = jsonencode({
@@ -38,8 +38,8 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = ["secretsmanager:GetSecretValue"]
-        Resource = aws_db_instance.main.master_user_secret[0].secret_arn
+        Action   = ["ssm:GetParameters"]
+        Resource = aws_ssm_parameter.db_password.arn
       }
     ]
   })
@@ -70,7 +70,7 @@ resource "aws_iam_role" "ecs_task_role" {
   }
 }
 
-# ECS Exec（SSM）権限 + Secrets Manager 読み取り権限
+# ECS Exec（SSM）権限
 resource "aws_iam_role_policy" "ecs_task_policy" {
   name = "${local.app_name}-ecs-task-policy"
   role = aws_iam_role.ecs_task_role.id
@@ -87,11 +87,6 @@ resource "aws_iam_role_policy" "ecs_task_policy" {
           "ssmmessages:OpenDataChannel"
         ]
         Resource = "*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = ["secretsmanager:GetSecretValue"]
-        Resource = aws_db_instance.main.master_user_secret[0].secret_arn
       }
     ]
   })

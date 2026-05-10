@@ -6,7 +6,7 @@ resource "aws_cloudfront_distribution" "main" {
   aliases             = [var.domain_name]
   default_root_object = "index.html"
 
-  # Origin: ALB (Next.js app)
+  # Origin: ALB (backend API)
   origin {
     origin_id   = "alb"
     domain_name = aws_lb.main.dns_name
@@ -19,54 +19,37 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # Origin: S3 (static assets)
+  # Origin: S3 (frontend SPA)
   origin {
     origin_id                = "s3"
     domain_name              = aws_s3_bucket.static.bucket_regional_domain_name
     origin_access_control_id = aws_cloudfront_origin_access_control.static.id
   }
 
-  # Default behavior: forward to ALB
+  # Default behavior: S3 (frontend SPA)
   default_cache_behavior {
-    target_origin_id       = "alb"
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods         = ["GET", "HEAD"]
-
-    forwarded_values {
-      query_string = true
-      headers      = ["Host", "Authorization"]
-
-      cookies {
-        forward = "all"
-      }
-    }
-
-    min_ttl     = 0
-    default_ttl = 0
-    max_ttl     = 0
-  }
-
-  # Cache behavior: S3 static assets
-  ordered_cache_behavior {
-    path_pattern           = "/static/*"
     target_origin_id       = "s3"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
+    compress               = true
 
-    forwarded_values {
-      query_string = false
+    # Managed-CachingOptimized
+    cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  }
 
-      cookies {
-        forward = "none"
-      }
-    }
+  # Cache behavior: /api/* → ALB (backend API)
+  ordered_cache_behavior {
+    path_pattern           = "/api/*"
+    target_origin_id       = "alb"
+    viewer_protocol_policy = "allow-all"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
 
-    min_ttl     = 0
-    default_ttl = 86400
-    max_ttl     = 31536000
-    compress    = true
+    # Managed-CachingDisabled
+    cache_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+    # Managed-AllViewer
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
   }
 
   restrictions {

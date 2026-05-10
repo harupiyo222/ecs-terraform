@@ -74,8 +74,8 @@ resource "aws_ecs_task_definition" "app" {
 
       secrets = [
         {
-          name      = "DB_SECRET_ARN"
-          valueFrom = aws_db_instance.main.master_user_secret[0].secret_arn
+          name      = "DB_PASSWORD"
+          valueFrom = aws_ssm_parameter.db_password.arn
         }
       ]
 

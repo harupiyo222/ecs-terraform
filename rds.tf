@@ -1,4 +1,25 @@
 # ==================================================
+# DBパスワード自動生成
+# ==================================================
+resource "random_password" "db" {
+  length  = 16
+  special = false
+}
+
+# ==================================================
+# SSM Parameter Store にパスワードを保存
+# ==================================================
+resource "aws_ssm_parameter" "db_password" {
+  name  = "/${local.app_name}/db/password"
+  type  = "SecureString"
+  value = random_password.db.result
+
+  tags = {
+    Name = "${local.app_name}-db-password"
+  }
+}
+
+# ==================================================
 # DB Subnet Group
 # ==================================================
 resource "aws_db_subnet_group" "main" {
@@ -36,8 +57,7 @@ resource "aws_db_instance" "main" {
 
   db_name  = var.db_name
   username = var.db_username
-
-  manage_master_user_password = true
+  password = random_password.db.result
 
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]

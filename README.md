@@ -2,7 +2,8 @@
 
 AWS上でのコンテナアプリケーション構成をTerraform でコード化したものです。
 
-実際の現場ではmodule化して環境ごとに使い分けているようですが、個人開発レベルなので単一のディレクトリにしています。
+- Terraform tfstate — S3でtfstateを管理
+- フラットな単一ディレクトリ構成で全リソースを管理（学習・把握しやすさを優先）
 
 # 構成図
 
@@ -16,8 +17,8 @@ Internet
 Route53 (ドメイン)
     ↓
 CloudFront (HTTPS / CDN)
-    ├── /static/* ───────────────────────────────── S3 (Static Assets)
-    └── /* ──→ ALB
+    ├── /* ───────────────────────────────────────── S3 (frontend SPA)
+    └── /api/* ──→ ALB (backend API)
                 │
                 │  VPC (10.0.0.0/21)
                 ├─────────────────────────────────────────────┐
@@ -31,7 +32,7 @@ CloudFront (HTTPS / CDN)
                 │  RDS Mysql (db.t3.micro)               │
                 └─────────────────────────────────────────────┘
 
-Secrets Manager → RDS Credentials
+SSM Parameter Store → RDS Credentials
 ```
 
 ## ファイル構成
@@ -41,19 +42,17 @@ ecs-terraform/
 ├── main.tf             # Terraform provider・locals
 ├── variables.tf        # 変数定義
 ├── terraform.tfvars    # 変数値
-├── outputs.tf          # 出力値
 ├── network.tf          # VPC・Subnet・Route Table
 ├── security_groups.tf  # Security Group (ALB / ECS / RDS)
 ├── alb.tf              # Application Load Balancer
 ├── ecs.tf              # ECS Cluster・Service・Task Definition
 ├── iam.tf              # IAM Role・Policy
 ├── auto_scaling.tf     # Auto Scaling
-├── rds.tf              # RDS・DB Subnet Group・Secrets Manager
+├── rds.tf              # RDS・DB Subnet Group・SSM Parameter Store
 ├── acm.tf              # ACM Certificate (us-east-1)
 ├── route53.tf          # Route53 DNS Records
 ├── cloudfront.tf       # CloudFront Distribution
 ├── s3.tf               # S3 Bucket (Static Assets)
-├── ecr.tf              # ECR リポジトリ・ライフサイクルポリシー
 ├── backend.tf          # Terraform リモートステート (S3)
 └── vpc_endpoints.tf    # VPC エンドポイント (ECR / S3 / CloudWatch Logs)
 └── README.md
@@ -61,12 +60,16 @@ ecs-terraform/
 
 ## コスト計算
 
-- Route 53:0.50ドル
+- Route 53: 0.50ドル
 - ALB: 28.30ドル
-- Fargate:11.09ドル ※Spotで7割引可
-- NAT: 48.24ドル
+- Fargate: 11.09ドル ※Spotで7割引可
+- NAT Gateway: 48.24ドル
 - RDS: 18.72ドル
-- Secrets Manager ~0.40ドル 1シークレット/月
+- VPC Endpoints: ~43.80ドル ※Interface型3つ × 2AZ × $0.01/時間
+- CloudWatch Logs: ~1〜2ドル ※ログ取り込み量による（7日保持）
+- S3: ~0.03ドル以下 ※静的アセット保存
+- CloudFront: 無料枠内なら0ドル ※月1TB・1000万リクエストまで無料
+- SSM Parameter Store: 0ドル ※標準パラメータは無料
 
 ## 特徴
 
@@ -76,6 +79,6 @@ ecs-terraform/
 - Fargate Spotでコスト削減
 - Auto Scaling（CPU使用率70%でスケールアウト）
 - CloudFront + S3でパスごとにALBとS3に振り分ける
-- RDSパスワードをSecrets Managerで自動管理
+- RDSパスワードをSSM Parameter Storeで管理
 - VPCエンドポイント — ECSからECR・S3・CloudWatch LogsへNAT非経由でアクセス（コスト削減・セキュリティ向上）
 - Terraformリモートステート — S3バックエンドでtfstateを管理（チーム開発・CI/CD対応）
