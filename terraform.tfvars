@@ -40,7 +40,8 @@ db_instance_class = "db.t3.micro"
 # ==================================================
 # Domain
 # ==================================================
-domain_name = "haru-aws.link"
+domain_name            = "haru-aws.link"
+cloudfront_domain_name = "d3a34epgrtx905.cloudfront.net"
 
 # ==================================================
 # Health Check

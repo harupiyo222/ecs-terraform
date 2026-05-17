@@ -116,9 +116,20 @@ variable "db_instance_class" {
   default     = "db.t3.micro"
 }
 
+# S3 設定（CloudFrontが既存のため現在未使用）
+# variable "s3_bucket_domain_name" {
+#   description = "既存S3バケットのリージョナルドメイン名（フロントエンドSPA用）"
+#   type        = string
+# }
+
 # ドメイン設定
 variable "domain_name" {
-  description = "Domain name"
+  description = "ドメイン名"
+  type        = string
+}
+
+variable "cloudfront_domain_name" {
+  description = "既存CloudFrontディストリビューションのドメイン名"
   type        = string
 }
 

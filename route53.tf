@@ -7,26 +7,7 @@ data "aws_route53_zone" "main" {
 }
 
 # ==================================================
-# Route53 - ACM DNS Validation Records
-# ==================================================
-resource "aws_route53_record" "acm_validation" {
-  for_each = {
-    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      type   = dvo.resource_record_type
-      record = dvo.resource_record_value
-    }
-  }
-
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = each.value.name
-  type    = each.value.type
-  records = [each.value.record]
-  ttl     = 60
-}
-
-# ==================================================
-# Route53 - CloudFront Alias Records
+# Route53 - CloudFront Alias Record
 # ==================================================
 resource "aws_route53_record" "cloudfront" {
   zone_id = data.aws_route53_zone.main.zone_id
@@ -34,9 +15,8 @@ resource "aws_route53_record" "cloudfront" {
   type    = "A"
 
   alias {
-    name                   = aws_cloudfront_distribution.main.domain_name
-    zone_id                = aws_cloudfront_distribution.main.hosted_zone_id
+    name                   = var.cloudfront_domain_name
+    zone_id                = "Z2FDTNDATAQYW2"
     evaluate_target_health = false
   }
 }
-
